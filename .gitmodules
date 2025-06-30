@@ -1,0 +1,12 @@
+[submodule "src/src/docling"]
+	path = src/src/docling
+	url = https://github.com/docling-project/docling
+[submodule "src/src/docling-serve"]
+	path = src/src/docling-serve
+	url = https://github.com/docling-project/docling-serve
+[submodule "src/docling"]
+	path = src/docling
+	url = https://github.com/docling-project/docling
+[submodule "src/docling-serve"]
+	path = src/docling-serve
+	url = https://github.com/docling-project/docling-serve
