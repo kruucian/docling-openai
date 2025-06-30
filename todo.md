@@ -10,7 +10,8 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 ## Task List
 
 ### 1 Dependencies & Environment
-- [ ] 1.1 Add `openai>=1.0.0` to `src/docling-serve/pyproject.toml` → `[project.dependencies]`.
+- [ ] 1.1 Add `requests>=2.25.0` to `src/docling-serve/pyproject.toml` → `[project.dependencies]` (HTTP client for proxy communication).
+- [ ] 1.1.1 (Optional) Add `pillow>=8.0.0` when image pre-processing (resize / sharpen) is required.
 - [ ] 1.2 Run `uv pip install -e src/docling-serve` (or equivalent) and verify installation succeeds on CPU-only machines.
 - [ ] 1.3 Support env vars `OPENAI_API_TIMEOUT`, `OPENAI_MODEL` (default `gpt-4o-mini`).
 - [ ] 1.4 Support env var `OPENAI_MAX_IMAGES_PER_REQUEST` (default `10`) to limit batch size.
@@ -19,6 +20,7 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 - [ ] 1.5 Env var `OPENAI_PROXY_URL` (e.g. `https://your-proxy-domain`) must be respected.  Fallback to direct OpenAI endpoint when unset.
 - [ ] 1.6 Env var `OPENAI_PROVIDER_NAME` default `openai`; allowed: `openai`, `openai-us`, `openai-eu`.
 - [ ] 1.7 Allow optional `X-REQUEST-TIMEOUT`, `X-CUSTOM-EVENT-ID`, `X-METADATA` headers to be passed through from user request to the proxy.
+- [ ] 1.8 The fully qualified proxy endpoint is `${OPENAI_PROXY_URL}/api/providers/${OPENAI_PROVIDER_NAME}/v1/chat/completions`.
 
 ### 2 `openai_ocr.py` Module
 - [ ] 2.1 Place module in `src/docling-serve/docling_serve/` (or `utils/`).
@@ -43,15 +45,24 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 - [ ] 3.1 Update Pydantic request model (likely `ConvertRequest`) to add optional `openai_api_key: str | None = None`.
 - [ ] 3.2 Provide updated schema example so Swagger/Redoc shows the new field.
 - [ ] 3.3 Ensure incoming `openai_api_key` is validated for basic format before use and **never** returned in any response.
+- [ ] 3.4 Validate uploaded image MIME types & max size before any processing (Security).
+- [ ] 3.5 Implement basic request rate-limiting per client API key/IP (configurable).
+- [ ] 3.6 Add simple API key format validation helper (length, allowed charset).
 
 ### 4 Endpoint Logic (`/v1alpha/convert/source`)
 - [ ] 4.1 Branch logic: if `openai_api_key` is present, go the OpenAI OCR path, else follow existing flow.
 - [ ] 4.1.1 If `openai_proxy_url` header is supplied by client, override env `OPENAI_PROXY_URL` just for that request.
-- [ ] 4.2 Use `DocumentConverter(...).render_images(tmpdir)` to obtain image paths.
+- [ ] 4.2 Use `DocumentConverter(...).convert(source)` to get a `Document` object and then extract or generate page images. *`render_images` does **not** exist*.
 - [ ] 4.3 **Sequential image processing:** iterate images one-by-one (no multi-image requests) → call `perform_ocr` → collect list `ocr_text`.
 - [ ] 4.4 **Progress tracking:** stream or log per-page progress; allow graceful interruption & resume.
 - [ ] 4.5 **Partial failure handling:** continue processing remaining images even if one fails; surface failed indices in response.
 - [ ] 4.6 Merge `{ "openai_ocr": ocr_text }` into the existing JSON response.
+
+#### 4.1.5 Image Extraction Strategy
+- [ ] 4.1.5 Option A: use `PdfPipelineOptions(generate_page_images=True)` to generate images during conversion.
+- [ ] 4.1.6 Option B: extract embedded images from the returned `Document` structure.
+- [ ] 4.1.7 Option C: post-process PDF pages with an external tool if neither of the above applies.
+- [ ] 4.1.8 Handle PNG / JPEG / TIFF consistently and ensure base64 compatibility.
 
 ### 5 Error Handling & Logging
 - [ ] 5.1 Catch `OpenAIOCRError` and raise `HTTPException(status_code=502, detail=str(e))`.
@@ -60,12 +71,15 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 - [ ] 5.4 Honour `OPENAI_API_TIMEOUT`; cancel request if exceeded and surface meaningful error.
 - [ ] 5.5 Mask API key in all log statements (e.g., show only first/last 4 chars).
 - [ ] 5.6 Add docs block listing sensitive data handling practices.
+- [ ] 5.7 Implement cost estimation based on image count & size; warn when above threshold.
+- [ ] 5.8 Enforce configurable daily/monthly usage limits via env vars (`OPENAI_DAILY_LIMIT`, `OPENAI_MONTHLY_LIMIT`).
+- [ ] 5.9 Persist and log actual API usage & estimated costs for monitoring/analytics.
 
 ### 6 Testing
-- [ ] 6.1 Unit test `openai_ocr.perform_ocr` with `vcrpy` (record once, replay later).
+- [ ] 6.1 Unit test `openai_ocr.perform_ocr` mocking HTTP calls with `pytest-httpx` or `responses` (do not require real API access).
 - [ ] 6.2 Endpoint test: FastAPI `TestClient`, provide fake key (mock OpenAI) to ensure branch works.
 - [ ] 6.3 Regression tests for existing behaviour when key is absent.
-- [ ] 6.4 Cache tests: same image processed twice should hit cache and skip API call.
+  # Cache tests will be added in Phase 2 once the caching layer exists.
 - [ ] 6.5 Concurrency test: process >`OPENAI_MAX_IMAGES_PER_REQUEST` images to ensure sequential logic & batching obey limits.
 
 ### 7 Documentation
@@ -91,8 +105,10 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 
 ### 10 Performance & Cost Optimization
 - [ ] 10.1 Enforce image dimension limit & JPEG compression to reduce payload size.
-- [ ] 10.2 Implement SHA-256 based cache to skip reprocessing identical images.
-- [ ] 10.3 Compute approximate token cost per page and display summary post-processing.
+- [ ] 10.2 Implement file-based or Redis-based caching for OCR results.
+- [ ] 10.3 Cache key = SHA-256(image bytes) + model + prompt (avoid false hits).
+- [ ] 10.4 Add TTL and cleanup logic for cache entries.
+- [ ] 10.5 Compute approximate token cost per page and display summary post-processing.
 
 ### 11 Advanced Features
 - [ ] 11.1 Explicit multi-language OCR support (add `language` parameter, pass in prompt when needed).
