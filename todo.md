@@ -15,8 +15,14 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 - [ ] 1.3 Support env vars `OPENAI_API_TIMEOUT`, `OPENAI_MODEL` (default `gpt-4o-mini`).
 - [ ] 1.4 Support env var `OPENAI_MAX_IMAGES_PER_REQUEST` (default `10`) to limit batch size.
 
+### 1.1 Proxy-Specific Configuration
+- [ ] 1.5 Env var `OPENAI_PROXY_URL` (e.g. `https://your-proxy-domain`) must be respected.  Fallback to direct OpenAI endpoint when unset.
+- [ ] 1.6 Env var `OPENAI_PROVIDER_NAME` default `openai`; allowed: `openai`, `openai-us`, `openai-eu`.
+- [ ] 1.7 Allow optional `X-REQUEST-TIMEOUT`, `X-CUSTOM-EVENT-ID`, `X-METADATA` headers to be passed through from user request to the proxy.
+
 ### 2 `openai_ocr.py` Module
 - [ ] 2.1 Place module in `src/docling-serve/docling_serve/` (or `utils/`).
+- [ ] 2.1.1 If using proxy, endpoint should be constructed as `${OPENAI_PROXY_URL}/api/providers/${OPENAI_PROVIDER_NAME}/v1/chat/completions`.
 - [ ] 2.2 Public API: `perform_ocr(image_path: Path, api_key: str, model: str | None = None, output_format: Literal["text", "json"] = "text") -> str | dict`.
 - [ ] 2.3 **Image encoding:** Read the file in binary mode and send as **base64-encoded** string per OpenAI Vision requirements.
 - [ ] 2.4 **Image pre-processing:**
@@ -29,6 +35,10 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
   - `OpenAIAuthenticationError`
   - `OpenAIImageProcessingError`
 
+- [ ] 2.7 Accept optional dict `extra_headers: dict[str, str] | None` parameter; merge/override default headers when calling proxy.
+- [ ] 2.8 Ensure headers `X-REQUEST-TIMEOUT`, `X-CUSTOM-EVENT-ID`, `X-METADATA` can be supplied via `extra_headers` and forwarded untouched.
+- [ ] 2.9 Build prompt and messages array exactly per proxy requirements (text + image_url as base64 `data:` URI).
+
 ### 3 API Schema Changes
 - [ ] 3.1 Update Pydantic request model (likely `ConvertRequest`) to add optional `openai_api_key: str | None = None`.
 - [ ] 3.2 Provide updated schema example so Swagger/Redoc shows the new field.
@@ -36,6 +46,7 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 
 ### 4 Endpoint Logic (`/v1alpha/convert/source`)
 - [ ] 4.1 Branch logic: if `openai_api_key` is present, go the OpenAI OCR path, else follow existing flow.
+- [ ] 4.1.1 If `openai_proxy_url` header is supplied by client, override env `OPENAI_PROXY_URL` just for that request.
 - [ ] 4.2 Use `DocumentConverter(...).render_images(tmpdir)` to obtain image paths.
 - [ ] 4.3 **Sequential image processing:** iterate images one-by-one (no multi-image requests) → call `perform_ocr` → collect list `ocr_text`.
 - [ ] 4.4 **Progress tracking:** stream or log per-page progress; allow graceful interruption & resume.
