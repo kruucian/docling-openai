@@ -10,39 +10,39 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 ## Task List
 
 ### 1 Dependencies & Environment
-- [ ] 1.1 Add `requests>=2.25.0` to `src/docling-serve/pyproject.toml` → `[project.dependencies]` (HTTP client for proxy communication).
-- [ ] 1.1.1 (Optional) Add `pillow>=8.0.0` when image pre-processing (resize / sharpen) is required.
+- [v] 1.1 Add `requests>=2.25.0` to `src/docling-serve/pyproject.toml` → `[project.dependencies]` (HTTP client for proxy communication). *Implemented in `pyproject.toml`*
+- [v] 1.1.1 (Optional) Add `pillow>=8.0.0` when image pre-processing (resize / sharpen) is required. *Added in `pyproject.toml`*
 - [ ] 1.2 Run `uv pip install -e src/docling-serve` (or equivalent) and verify installation succeeds on CPU-only machines.
-- [ ] 1.3 Support env vars `OPENAI_API_TIMEOUT`, `OPENAI_MODEL` (default `gpt-4o-mini`).
-- [ ] 1.4 Support env var `OPENAI_MAX_IMAGES_PER_REQUEST` (default `10`) to limit batch size.
+- [v] 1.3 Support env vars `OPENAI_API_TIMEOUT`, `OPENAI_MODEL` (default `gpt-4o-mini`). *Implemented in `openai_ocr.py`*
+- [v] 1.4 Support env var `OPENAI_MAX_IMAGES_PER_REQUEST` (default `10`) to limit batch size. *Implemented in `openai_ocr.py`*
 
 ### 1.1 Proxy-Specific Configuration
-- [ ] 1.5 Env var `OPENAI_PROXY_URL` (e.g. `https://your-proxy-domain`) must be respected.  Fallback to direct OpenAI endpoint when unset.
-- [ ] 1.6 Env var `OPENAI_PROVIDER_NAME` default `openai`; allowed: `openai`, `openai-us`, `openai-eu`.
-- [ ] 1.7 Allow optional `X-REQUEST-TIMEOUT`, `X-CUSTOM-EVENT-ID`, `X-METADATA` headers to be passed through from user request to the proxy.
-- [ ] 1.8 The fully qualified proxy endpoint is `${OPENAI_PROXY_URL}/api/providers/${OPENAI_PROVIDER_NAME}/v1/chat/completions`.
+- [v] 1.5 Env var `OPENAI_PROXY_URL` (e.g. `https://your-proxy-domain`) must be respected.  Fallback to direct OpenAI endpoint when unset. *Implemented*
+- [v] 1.6 Env var `OPENAI_PROVIDER_NAME` default `openai`; allowed: `openai`, `openai-us`, `openai-eu`. *Implemented*
+- [v] 1.7 Allow optional `X-REQUEST-TIMEOUT`, `X-CUSTOM-EVENT-ID`, `X-METADATA` headers to be passed through from user request to the proxy. *Supported via `extra_headers` param*
+- [v] 1.8 The fully qualified proxy endpoint is `${OPENAI_PROXY_URL}/api/providers/${OPENAI_PROVIDER_NAME}/v1/chat/completions`. *Implemented*
 
 ### 2 `openai_ocr.py` Module
-- [ ] 2.1 Place module in `src/docling-serve/docling_serve/` (or `utils/`).
-- [ ] 2.1.1 If using proxy, endpoint should be constructed as `${OPENAI_PROXY_URL}/api/providers/${OPENAI_PROVIDER_NAME}/v1/chat/completions`.
-- [ ] 2.2 Public API: `perform_ocr(image_path: Path, api_key: str, model: str | None = None, output_format: Literal["text", "json"] = "text") -> str | dict`.
-- [ ] 2.3 **Image encoding:** Read the file in binary mode and send as **base64-encoded** string per OpenAI Vision requirements.
+- [v] 2.1 Place module in `src/docling-serve/docling_serve/` (or `utils/`).
+- [v] 2.1.1 If using proxy, endpoint should be constructed as `${OPENAI_PROXY_URL}/api/providers/${OPENAI_PROVIDER_NAME}/v1/chat/completions`.
+- [v] 2.2 Public API: `perform_ocr(image_path: Path, api_key: str, model: str | None = None, output_format: Literal["text", "json"] = "text") -> str | dict`.
+- [v] 2.3 **Image encoding:** Read the file in binary mode and send as **base64-encoded** string per OpenAI Vision requirements.
 - [ ] 2.4 **Image pre-processing:**
   - Check resolution; upscale/downscale to OpenAI’s recommendations (≥2000 px for high-quality scans, ≥3500 px for lower quality).
   - Provide optional sharpening / contrast enhancement hooks.
-- [ ] 2.5 **Prompt optimisation:** Include helper that prefixes the prompt with
+- [v] 2.5 **Prompt optimisation:** Include helper that prefixes the prompt with
   `"Extract all text exactly as shown, paying special attention to proper names and identifiers."`
-- [ ] 2.6 Define `class OpenAIOCRError(Exception)` for unified error handling and extend with subclasses:
+- [v] 2.6 Define `class OpenAIOCRError(Exception)` for unified error handling and extend with subclasses:
   - `OpenAIRateLimitError`
   - `OpenAIAuthenticationError`
   - `OpenAIImageProcessingError`
 
-- [ ] 2.7 Accept optional dict `extra_headers: dict[str, str] | None` parameter; merge/override default headers when calling proxy.
-- [ ] 2.8 Ensure headers `X-REQUEST-TIMEOUT`, `X-CUSTOM-EVENT-ID`, `X-METADATA` can be supplied via `extra_headers` and forwarded untouched.
-- [ ] 2.9 Build prompt and messages array exactly per proxy requirements (text + image_url as base64 `data:` URI).
+- [v] 2.7 Accept optional dict `extra_headers: dict[str, str] | None` parameter; merge/override default headers when calling proxy.
+- [v] 2.8 Ensure headers `X-REQUEST-TIMEOUT`, `X-CUSTOM-EVENT-ID`, `X-METADATA` can be supplied via `extra_headers` and forwarded untouched.
+- [v] 2.9 Build prompt and messages array exactly per proxy requirements (text + image_url as base64 `data:` URI).
 
 ### 3 API Schema Changes
-- [ ] 3.1 Update Pydantic request model (likely `ConvertRequest`) to add optional `openai_api_key: str | None = None`.
+- [v] 3.1 Update Pydantic request model (likely `ConvertRequest`) to add optional `openai_api_key: str | None = None`.
 - [ ] 3.2 Provide updated schema example so Swagger/Redoc shows the new field.
 - [ ] 3.3 Ensure incoming `openai_api_key` is validated for basic format before use and **never** returned in any response.
 - [ ] 3.4 Validate uploaded image MIME types & max size before any processing (Security).
