@@ -30,6 +30,11 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 - [ ] 2.4 **Image pre-processing:**
   - Check resolution; upscale/downscale to OpenAI’s recommendations (≥2000 px for high-quality scans, ≥3500 px for lower quality).
   - Provide optional sharpening / contrast enhancement hooks.
+- [v] 2.4 **Image pre-processing:**
+  - Implemented optional pre-processing in `openai_ocr.py` controlled via env vars:
+    - `OPENAI_OCR_PREPROCESS` (default "1") enables resize to [2000, 3500] px longest side.
+    - `OPENAI_OCR_SHARPEN` / `OPENAI_OCR_CONTRAST` toggle optional enhancements.
+  - Uses Pillow; emits clear error if Pillow missing and pre-processing enabled.
 - [v] 2.5 **Prompt optimisation:** Include helper that prefixes the prompt with
   `"Extract all text exactly as shown, paying special attention to proper names and identifiers."`
 - [v] 2.6 Define `class OpenAIOCRError(Exception)` for unified error handling and extend with subclasses:
