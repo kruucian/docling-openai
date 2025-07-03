@@ -55,7 +55,7 @@ Extend `docling-serve` so that, when a user supplies a valid OpenAI API key, the
 - [ ] 3.6 Add simple API key format validation helper (length, allowed charset).
 
 ### 4 Endpoint Logic (`/v1alpha/convert/source`)
-- [ ] 4.1 Branch logic: if `openai_api_key` is present, go the OpenAI OCR path, else follow existing flow.
+- [v] 4.1 Branch logic: if `openai_api_key` is present, go the OpenAI OCR path, else follow existing flow.
 - [ ] 4.1.1 If `openai_proxy_url` header is supplied by client, override env `OPENAI_PROXY_URL` just for that request.
 - [ ] 4.2 Use `DocumentConverter(...).convert(source)` to get a `Document` object and then extract or generate page images. *`render_images` does **not** exist*.
 - [ ] 4.3 **Sequential image processing:** iterate images one-by-one (no multi-image requests) → call `perform_ocr` → collect list `ocr_text`.
