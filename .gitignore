@@ -1,0 +1,13 @@
+# Ignore temporary directories and one-off test artifacts
+
+# Generic temp/test directories and files
+/tmp*/
+/tmp_*/
+**/tmp*/
+**/tmp_*/
+
+tmp*.py
+tmp_*.py
+
+# Python cache directories
+__pycache__/
